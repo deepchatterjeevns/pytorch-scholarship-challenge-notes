@@ -124,14 +124,36 @@ Contributions are always welcome!
     + [Gram Matrix](#gram-matrix)
     + [Style Loss](#style-loss)
     + [Loss Weights](#loss-weights)
-    + [VGG Features](#vgg-features)
-    + [Features & Gram Matrix](#features--gram-matrix)
-    + [Gram Matrix Solution](#gram-matrix-solution)
-    + [Defining the Loss](#defining-the-loss)
-    + [Total Loss & Complete Solution](#total-loss--complete-solution)
   * [Quizes](#quizes-2)
+    + [Q1 - 6.4: Gram Matrix](#q1---64-gram-matrix)
+      - [Q 1.1](#q-11)
+      - [Q 1.2](#q-12)
   * [Notebooks](#notebooks-3)
-- [Lesson 7](#lesson-7)
+- [Lesson 7: Recurrent Neural Networks](#lesson-7-recurrent-neural-networks)
+  * [Lectures](#lectures-4)
+    + [Intro to RNNs](#intro-to-rnns)
+    + [RNN vs LSTM](#rnn-vs-lstm)
+    + [Basics of LSTM](#basics-of-lstm)
+    + [Architecture of LSTM](#architecture-of-lstm)
+    + [The Learn Gate](#the-learn-gate)
+    + [The Forget Gate](#the-forget-gate)
+    + [The Remember Gate](#the-remember-gate)
+    + [The Use Gate](#the-use-gate)
+    + [Putting it All Together](#putting-it-all-together)
+    + [Other architectures](#other-architectures)
+    + [Implementing RNNs](#implementing-rnns)
+    + [Time-Series Prediction](#time-series-prediction)
+    + [Training & Memory](#training--memory)
+    + [Character-wise RNNs](#character-wise-rnns)
+    + [Sequence Batching](#sequence-batching)
+    + [Notebook: Character-Level RNN](#notebook-character-level-rnn)
+    + [Implementing a Char-RNN](#implementing-a-char-rnn)
+    + [Batching Data, Solution](#batching-data-solution)
+    + [Defining the Model](#defining-the-model)
+    + [Char-RNN, Solution](#char-rnn-solution)
+    + [Making Predictions](#making-predictions)
+  * [Quizes](#quizes-3)
+  * [Notebooks](#notebooks-4)
 - [Lesson 8](#lesson-8)
 - [Lesson 9](#lesson-9)
 - [Challenge Project](#challenge-project)
@@ -1215,32 +1237,277 @@ nn.MaxPool2d(2, 2)
 </p>
 
 #### VGG19 & Content Loss
+* VGG19 -> 19 layer VGG network
+
+<p align="center">
+  <img src="./images/lesson-6/vgg-19.PNG" width="50%">
+</p>
+
+* When the network sees the __content image__, it will go through feed-forward process until it gets to a conv layer that is deep in the network, the output will be the content representation
+
+<p align="center">
+  <img src="./images/lesson-6/content-rep.PNG" width="50%">
+</p>
+
+* When it sees tye __style image__, it will extract different features from multiple layers that represent the style of that image
+
+<p align="center">
+  <img src="./images/lesson-6/style-rep.PNG" width="50%">
+</p>
+
+* __content loss__ is a loss that calculates the difference between the content (Cc) and target (Tc) image representation
+
+<p align="center">
+  <img src="./images/lesson-6/content-loss.PNG" width="50%">
+</p>
 
 #### Gram Matrix
+* Correlations at each layer in convolutional layer are given by a Gram matrix
+* First step in calculating the Gram matrix, will be to vectorize the values of feature map
+
+<p align="center">
+  <img src="./images/lesson-6/flatten.PNG" width="50%">
+</p>
+
+* By flattening the XY dimensions of the feature maps, we're convrting a 3D conv layer to a 2D matrix of values
+
+<p align="center">
+  <img src="./images/lesson-6/vectorized-feature-map.PNG" width="50%">
+</p>
+
+* The next step is to multiply vectorized feature map by its transpose to get the gram matrix
+
+<p align="center">
+  <img src="./images/lesson-6/gram-matrix.PNG" width="50%">
+</p>
 
 #### Style Loss
 
+* __content loss__ is a loss that calculates the difference between the image style (Ss) and target (Ts) image style, `a` is constant that accounts for the number of values in each layer, `w` is style weights
+
+<p align="center">
+  <img src="./images/lesson-6/style-loss.PNG" width="50%">
+</p>
+
+* Add together content loss and style loss to get total loss and then use typical back propagation and optimization to reduce total loss
+
+<p align="center">
+  <img src="./images/lesson-6/total-loss.PNG" width="50%">
+</p>
+
 #### Loss Weights
 
-#### VGG Features
+* alpha beta ratio is ratio between alpha (content weight) and beta (style weight)
 
-#### Features & Gram Matrix
+<p align="center">
+  <img src="./images/lesson-6/weight-ratio.PNG" width="50%">
+</p>
 
-#### Gram Matrix Solution
+* Different alpha beta ratio can result in different generated image
 
-#### Defining the Loss
+<p align="center">
+  <img src="./images/lesson-6/weight-ratio-effect.PNG" width="50%">
+</p>
 
-#### Total Loss & Complete Solution
+### Quizes
+#### Q1 - 6.4: Gram Matrix
+##### Q 1.1
+* Q: Given a convolutional layer with dimensions `d x h x w = (20*8*8)`, what length will one row of the vectorized convolutional layer have? (Vectorized means that the spatial dimensions are flattened.)
+* A: `64`
+* E: When the height and width (8 x 8) are flattened, the resultant 2D matrix will have as many columns as the height and width, multiplied: `8*8 = 64`.
+
+##### Q 1.2
+* Q: Given a convolutional layer with dimensions `d x h x w = (20*8*8)`, what dimensions (h x w) will the resultant Gram matrix have?
+* A: `(20 x 20)`
+* E: The Gram matrix will be a square matrix, with a width and height = to the depth of the convolutional layer in question.
+
+### Notebooks
+* [Style Transfer with Deep Neural Networks](https://github.com/agungsantoso/deep-learning-v2-pytorch/blob/master/style-transfer/Style_Transfer_Exercise.ipynb)
+
+
+## Lesson 7: Recurrent Neural Networks
+
+### Lectures
+#### Intro to RNNs
+* RNN (__R__ ecurrent __N__ eural __N__ etworks)
+
+  A neural network that is intentionally run multiple times, where parts of each run feed into the next run. Specifically, hidden layers from the previous run provide part of the input to the same hidden layer in the next run. Recurrent neural networks are particularly useful for evaluating sequences, so that the hidden layers can learn from previous runs of the neural network on earlier parts of the sequence.
+
+  For example, the following figure shows a recurrent neural network that runs four times. Notice that the values learned in the hidden layers from the first run become part of the input to the same hidden layers in the second run. Similarly, the values learned in the hidden layer on the second run become part of the input to the same hidden layer in the third run. In this way, the recurrent neural network gradually trains and predicts the meaning of the entire sequence rather than just the meaning of individual words.
+
+  <p align="center">
+    <img src="./images/lesson-7/rnn.svg" width="75%">
+  </p>
+
+* LSTM (__L__ ong __S__ hort - __T__ erm __M__ emory)
+
+  LSTM are an improvement of the RNN, and quite useful when needs to switch between remembering recent things, and things from long time ago
+
+#### RNN vs LSTM
+* RNN work as follows:
+  * memory comes in an merges with a current event
+  * and the output comes out as a prediction of what the input is
+  * as part of the input for the next iteration of the neural network
+* RNN has problem with the memory that is short term memory
+
+<p align="center">
+  <img src="./images/lesson-7/rnn.PNG" width="50%">
+</p>
+
+* LSTM works as follows:
+  * keeps track long term memory which comes in an comes out
+  * and short term memory which also comes in and comes out
+* From there, we get a new long term memory, short term memory and a prediction. In here, we protect old information more.
+
+<p align="center">
+  <img src="./images/lesson-7/lstm.PNG" width="50%">
+</p>
+
+#### Basics of LSTM
+* Architecture of LSTM
+  * forget gate
+
+    long term memory (__LTM__) goes here where it forgets everything that it doesn't consider useful
+  * learn gate
+
+    short term memory and event are joined together containing information that have recently learned and it removes any unecessary information
+  * remember gate
+
+    long term memory that haven't forgotten yet plus the new information that have learned get joined together to update long term memmory
+  * use gate
+  
+    decide what information use from what previously know plus what we just learned to make a prediction. The output becomes both the prediction and the new short term memory (__STM__)
+
+  <p align="center">
+    <img src="./images/lesson-7/lstm-arch.PNG" width="50%">
+  </p>
+
+  <p align="center">
+    <img src="./images/lesson-7/lstm-arch-2.PNG" width="50%">
+  </p>
+
+#### Architecture of LSTM
+* RNN Architecture
+
+<p align="center">
+  <img src="./images/lesson-7/rnn-math.PNG" width="50%">
+</p>
+
+* LSTM Architecture
+
+<p align="center">
+  <img src="./images/lesson-7/lstm-math.PNG" width="50%">
+</p>
+
+#### The Learn Gate
+
+* Learn gate works as follows:
+  * Take __STM__ and the __event__ and jonis it (use __tanh__ activation function)
+  * then ignore (ignore factor) a bit to keep the important part of it (use __sigmoid__ activation function)
+
+<p align="center">
+  <img src="./images/lesson-7/learn-gate.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/learn-gate-math.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/learn-eq.png" width="50%">
+</p>
+
+#### The Forget Gate
+
+* Forget gate works as follows:
+  * Take __LTM__ and decides what parts to keep and to forget (forget factor, use __sigmoid__ activation function)
+
+<p align="center">
+  <img src="./images/lesson-7/forget-gate.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/forget-gate-math.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/forget-eq.png" width="50%">
+</p>
+
+#### The Remember Gate
+
+* Remember gate works as follows:
+  * Take LTM coming out of forget gate and STM coming out of learn gate and combine them together
+
+<p align="center">
+  <img src="./images/lesson-7/remember-gate.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/remember-gate-math.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/remember-gate-eq.PNG" width="50%">
+</p>
+
+#### The Use Gate
+
+* Remember gate works as follows:
+  * Take LTM coming out of forget gate (apply __tanh__) and STM coming out of learn gate (apply __sigmoid__) to come up with a new STM and an output (multiply them together)
+
+<p align="center">
+  <img src="./images/lesson-7/use-gate.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/use-gate-math.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/use-gate-eq.PNG" width="50%">
+</p>
+
+#### Putting it All Together
+
+<p align="center">
+  <img src="./images/lesson-7/lstm-full.PNG" width="50%">
+</p>
+
+<p align="center">
+  <img src="./images/lesson-7/lstm-full-math.PNG" width="50%">
+</p>
+
+#### Other architectures
+
+#### Implementing RNNs
+
+#### Time-Series Prediction
+
+#### Training & Memory
+
+#### Character-wise RNNs
+
+#### Sequence Batching
+
+#### Notebook: Character-Level RNN
+
+#### Implementing a Char-RNN
+
+#### Batching Data, Solution
+
+#### Defining the Model
+
+#### Char-RNN, Solution
+
+#### Making Predictions
 
 ### Quizes
 
 ### Notebooks
 
-## Lesson 7
-
 
 ## Lesson 8
-
 
 ## Lesson 9
 
